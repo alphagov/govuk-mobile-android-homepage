@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "govuk-mobile-android-homepage"
 include(":app")
- 
+include(":homepage")

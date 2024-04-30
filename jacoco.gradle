@@ -1,0 +1,103 @@
+/**
+ *  List of modules that don"t require Jacoco
+ */
+def ignoredByJacoco = []
+def fileFilter = []
+def buildKotlinClasses = "/tmp/kotlin-classes/debug"
+def buildJavaClasses = "/intermediates/javac/debug/classes"
+def testExecutionFile = "/outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec"
+
+/**
+ *  Apply additional build steps to sub-projects
+ */
+subprojects { project ->
+  def projectName = project.name
+  def projectBuildFolder = project.buildDir
+  def projectFolder = project.projectDir
+
+  // Apply Jacoco only if the project is not in the ignore list
+  if (!ignoredByJacoco.contains(projectName)) {
+    apply plugin: "jacoco"
+    jacoco {
+      version "0.8.11"
+    }
+
+    task jacocoReport(
+      type: JacocoReport,
+      dependsOn: "testDebugUnitTest"
+    ) {
+      group = "Reporting"
+      description = "Generate Jacoco coverage reports after running tests."
+
+      reports {
+        xml { enabled true }
+        html { enabled true }
+      }
+
+      def debugTree = fileTree("directory does not exists")
+
+      def buildDebug = [
+          "$projectBuildFolder" + "$buildKotlinClasses",
+          "$projectBuildFolder" + "$buildJavaClasses"
+      ]
+
+      buildDebug.each { classPath ->
+        debugTree += fileTree(dir: classPath, includes: fileFilter)
+      }
+
+      def mainSrc = "$projectFolder/src/main/java"
+      sourceDirectories.from = files([mainSrc])
+      classDirectories.from = files([debugTree])
+      executionData.from = files("$projectBuildFolder" + "$testExecutionFile")
+    }
+  }
+}
+
+/**
+ *  Root task that generates an aggregated Jacoco test coverage report for all sub-projects
+ */
+task jacocoFullReport(
+  name: "jacocoFullReport",
+  type: JacocoReport,
+  group: "Coverage reports"
+) {
+  group = "Reporting"
+  description = "Generates an aggregate report from all subprojects"
+
+  // Get list of projects which should be included in the report
+  def projects = new ArrayList()
+  subprojects.each { prj ->
+    if (!ignoredByJacoco.contains(prj.name)) {
+      projects.add(prj)
+    }
+  }
+
+  //noinspection GrUnresolvedAccess
+  dependsOn(projects.jacocoReport)
+
+  def dirs = []
+  def tree = fileTree("directory does not exists")
+
+  projects.each { prj ->
+    dirs.add("${prj.name}/src/main/java")
+
+    def buildDebug = [
+        "$prj.buildDir" + "$buildKotlinClasses",
+        "$prj.buildDir" + "$buildJavaClasses"
+    ]
+
+    buildDebug.each { classPath ->
+      tree += fileTree(dir: classPath, includes: fileFilter)
+    }
+  }
+
+  additionalSourceDirs.setFrom(files(dirs))
+  sourceDirectories.from = files(dirs)
+  classDirectories.from = tree
+  executionData.from = files(projects.jacocoReport.executionData)
+
+  reports {
+    xml { enabled true }
+    html { enabled true }
+  }
+}

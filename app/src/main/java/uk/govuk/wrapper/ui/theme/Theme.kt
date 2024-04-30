@@ -1,4 +1,4 @@
-package uk.govuk.homepage.ui.theme
+package uk.govuk.wrapper.ui.theme
 
 import android.app.Activity
 import android.os.Build

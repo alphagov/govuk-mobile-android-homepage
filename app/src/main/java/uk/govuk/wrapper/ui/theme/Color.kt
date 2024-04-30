@@ -1,4 +1,4 @@
-package uk.govuk.homepage.ui.theme
+package uk.govuk.wrapper.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
